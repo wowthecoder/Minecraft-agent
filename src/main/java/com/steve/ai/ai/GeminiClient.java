@@ -16,10 +16,10 @@ import java.time.Duration;
  * Client for Google Gemini API
  * FREE tier: 15 RPM, 1500 RPD
  * Paid: ~10x cheaper than GPT-3.5
- * Using gemini-2.5-flash with high token limit for thinking mode
+ * Uses the configured model from steve-common.toml.
  */
 public class GeminiClient {
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    private static final String GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
     
     private final HttpClient client;
     private final String apiKey;
@@ -38,7 +38,7 @@ public class GeminiClient {
         }
 
         JsonObject requestBody = buildRequestBody(systemPrompt, userPrompt);
-        String urlWithKey = GEMINI_API_URL + "?key=" + apiKey;
+        String urlWithKey = buildApiUrl();
         
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(urlWithKey))
@@ -68,6 +68,19 @@ public class GeminiClient {
             SteveMod.LOGGER.error("Error communicating with Gemini API", e);
             return null;
         }
+    }
+
+    private String buildApiUrl() {
+        String model = SteveConfig.OPENAI_MODEL.get();
+        if (model == null || model.isBlank()) {
+            model = "gemini-2.5-flash";
+        }
+
+        if (model.startsWith("models/")) {
+            model = model.substring("models/".length());
+        }
+
+        return GEMINI_API_BASE_URL + model + ":generateContent?key=" + apiKey;
     }
 
     private JsonObject buildRequestBody(String systemPrompt, String userPrompt) {
